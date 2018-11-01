@@ -1,41 +1,38 @@
-import java.util.concurrent.Semaphore;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 
 
-public class Philosopher extends Thread
-{
-    
-    private static final Random rand = new Random();
+public class Philosopher extends Thread{
+	
+	private static final Random RANDOM = new Random();
+	final static int SLEEP_TIME =4000;
+	final static int  NUMBER_OF_PHILOSOPHER = 5;
     private static int event=0;
-    final static int N = 5; 
-    public static Semaphore[] fork = new Semaphore[N];
-    private int oneOnTop = N;
- 
-   
+    private int Number_of_fork = NUMBER_OF_PHILOSOPHER;
     private int philosopher_id;                 
     private Semaphore left_fork;      
     private Semaphore right_fork;
-    private int meals = 5;         
+    private int Total_meals = 5;     
+    public static Semaphore[] fork = new Semaphore[NUMBER_OF_PHILOSOPHER];
  
-    public Philosopher(int i, Semaphore fork1, Semaphore fork2)
+    public Philosopher(int id, Semaphore forkleft, Semaphore forkright)
     {
-        philosopher_id = i;
-        left_fork = fork1;
-        right_fork = fork2;
+        philosopher_id = id;
+        left_fork = forkleft;
+        right_fork = forkright;
     }
  
  
-    private void postMsg(String str) {
-        System.out.printf(" %d. Chopsitcks left: %d. Philosopher %d %s\n",
-                         ++event, getTopOne(), philosopher_id, str);
+    private void postMsg(String string) {
+        System.out.printf(" %d. fork left: %d. Philosopher %d %s\n",
+                         ++event, NumberofFork(), philosopher_id, string);
     }
- 
     
     private void pause()
     {
         try
         {
-            sleep(rand.nextInt(4000));
+            sleep(RANDOM.nextInt(SLEEP_TIME));
         } catch (InterruptedException e){}
     }
 
@@ -45,21 +42,21 @@ public class Philosopher extends Thread
         pause();
     }
     
-    private synchronized void takeOne()
+    private synchronized void takefork()
     {
-        oneOnTop--;
+    	Number_of_fork--;
     } 
     
-    private synchronized void putBack()
+    private synchronized void putfork()
     {
-        oneOnTop++;
+    	Number_of_fork++;
     }
     
      
     
-    private synchronized int getTopOne()
+    private synchronized int NumberofFork()
     {
-        return oneOnTop;
+        return Number_of_fork;
     }
     
     
@@ -67,7 +64,7 @@ public class Philosopher extends Thread
     
     private void eat()
     {
-        if (getTopOne() < 2){
+        if (NumberofFork() < 2){
             postMsg("is waiting for chopsticks");
         } else {
             postMsg("is hungry and is trying to pick up two chopsticks");
@@ -75,24 +72,24 @@ public class Philosopher extends Thread
         pause();
         try {
             
-            takeOne();
-            left_fork = fork[getTopOne() - 1];
+        	takefork();
+            left_fork = fork[NumberofFork() - 1];
             left_fork.acquire();
  
-            takeOne();
-            right_fork = fork[getTopOne() - 1];
+            takefork();
+            right_fork = fork[NumberofFork() - 1];
             if (!right_fork.tryAcquire()) {
                 
-                postMsg(">>>> was not able to get a second chopstick");
+                postMsg("was not able to get a second chopstick");
                 return;
             };
  
-           
-            postMsg(" is eating meal #" + (5 - --meals));
+            int current_meal = --Total_meals;
+            postMsg(" is eating meal #" + (5 - current_meal));
             pause();
  
             postMsg("puts down his chopsticks");
-            putBack();
+            putfork();
             right_fork.release();
  
         } catch (InterruptedException e) {
@@ -100,7 +97,7 @@ public class Philosopher extends Thread
             postMsg("was interrupted while waiting for his fork");
         }
         finally { 
-            putBack();
+        	putfork();
             left_fork.release();
         }
     }
@@ -108,47 +105,10 @@ public class Philosopher extends Thread
    
     public void run()
     {
-        while (meals > 0)
+        while (Total_meals > 0)
         {
             think();
             eat();
         }
-    }
- 
-
-    public static void main(String[] args)
-    {
-        System.out.println("Begin");
- 
-        for (int f = 0; f < N; f++) {
-       
-            fork[f] = new Semaphore(1, true);
-        }
- 
-
-        Philosopher[] philosopher = new Philosopher[N];
-        for (int me = 0; me < N; me++) {
-           
-            int myneighbor = me + 1;
-            if (myneighbor == N) myneighbor = 0;
- 
-           
-            philosopher[me] = new Philosopher(me, fork[me], fork[myneighbor]); 
-        }
- 
-        
-        for (int i = 0; i < N; i++) {
-              philosopher[i].start();
-        }
- 
-
-        for (int i = 0; i < N; i++) {
-          try {
-            philosopher[i].join();
-          } catch(InterruptedException ex) { }
-        }
- 
-       
-        System.out.println("Done");
     }
 }
